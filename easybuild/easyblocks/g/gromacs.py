@@ -675,7 +675,7 @@ class EB_GROMACS(CMakeMake):
             'dirs': dirs
         }
 
-        if  self.cfg['build_shared_libs'] or LooseVersion(self.version) <= LooseVersion('2022'):
+        if self.cfg['build_shared_libs'] or LooseVersion(self.version) <= LooseVersion('2022'):
             # only if any libs are actually built
             if not self.lib_subdir:
                 self.lib_subdir = self.get_lib_subdir()
