@@ -69,6 +69,7 @@ class EB_GROMACS(CMakeMake):
             'mpi_numprocs': [0, "Number of MPI tasks to use when running tests", CUSTOM],
             'ignore_plumed_version_check': [False, "Ignore the version compatibility check for PLUMED", CUSTOM],
             'with_plumed': ['auto', "Try to apply PLUMED patches ('auto', True or False)", CUSTOM],
+            'with_cp2k': ['auto', "Build with CP2K QM/MM  ('auto', True or False)", CUSTOM],
         })
         extra_vars['separate_build_dir'][0] = True
         return extra_vars
@@ -210,6 +211,51 @@ class EB_GROMACS(CMakeMake):
                 # to avoid that GROMACS finds and uses a system-wide CUDA compiler
                 self.cfg.update('configopts', "-DGMX_GPU=OFF")
 
+        # check whether CK2K is loaded as a dependency
+        cp2k_root = get_software_root('CP2K')
+        if  str(self.cfg['with_cp2k']).upper() == 'TRUE' :
+            if not cp2k_root:
+                msg = "Compilation with CP2K was expicitly selected, but CP2K was not found."
+                raise EasyBuildError(msg)
+            self.log.info("Building with CP2K was requested.")
+        elif str(self.cfg['with_cp2k']).upper() == 'FALSE' :
+            if cp2k_root:
+                self.log.info('CP2K was found, but compilation without CP2K has been requested.')
+            cp2k_root = None
+        elif str(self.cfg['with_cp2k']).upper() == 'AUTO' and cp2k_root:
+            self.log.info('CP2K has been auto-detected.')
+
+        if LooseVersion(self.version) < LooseVersion('2022') and cp2k_root:
+            msg ='CP2K support is only available for GROMACS 2022 and newer.'
+            raise EasyBuildError(msg)
+        elif cp2k_root and LooseVersion(get_software_version('CP2K')) < LooseVersion('8.1'):
+            msg = 'CP2K support in GROMACS requires CP2K version 8.1 or higher.'
+            raise EasyBuildError(msg)
+        elif LooseVersion(self.version) >= LooseVersion('2022') and cp2k_root:
+            # Building with CP2K requires static build w/o gmxapi.
+            # https://manual.gromacs.org/documentation/2022/install-guide/index.html#building-with-cp2k-qm-mm-support
+            self.log.info("Building with CP2K QM/MM.")
+            self.cfg['build_shared_libs'] = False
+            self.libext = 'a'
+            cp2k_version = get_software_version('CP2K')
+            self.cfg.update('configopts', "-DGMX_INSTALL_NBLIB_API=OFF")
+            self.cfg.update('configopts', "-DGMXAPI=OFF")
+            self.cfg.update('configopts', "-DGMX_CP2K=ON")
+            self.cfg.update('configopts', "-DGMX_VERSION_STRING_OF_FORK=CP2K-{:}".format(cp2k_version))
+            self.cfg.update('configopts', "-DCP2K_DIR=%s/lib64" % cp2k_root)
+            cp2k_linker_flags = [
+                # Need MPI linker flags b/c libcp2k.a is compiled with mpifort.
+                # These are for OpenMPI (mpifort --showme).
+                "-lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi",
+                "-L%s/lib/exts/dbcsr" % cp2k_root,
+                # get depenencies for libcp2k.a:
+                "$(pkg-config --libs-only-l libcp2k)"
+            ]
+            if get_software_root('Libint'):
+                # for some reason libint2 is not discovered by pkg-config:
+                cp2k_linker_flags.append('-lint2')
+            self.cfg.update('configopts', '-DCP2K_LINKER_FLAGS="%s"' % " ".join(cp2k_linker_flags))
+
         # check whether PLUMED is loaded as a dependency
         plumed_root = get_software_root('PLUMED')
         if str(self.cfg['with_plumed']).upper() == 'AUTO':
@@ -318,7 +364,7 @@ class EB_GROMACS(CMakeMake):
                               mpiexec_path, self.cfg.get('mpiexec_numproc_flag'),
                               mpi_numprocs)
 
-            if LooseVersion(self.version) >= LooseVersion('2019'):
+            elif LooseVersion(self.version) >= LooseVersion('2019') and self.cfg['build_shared_libs']:
                 # Building the gmxapi interface requires shared libraries,
                 # this is handled in the class initialisation so --module-only works
                 self.cfg.update('configopts', "-DGMXAPI=ON")
