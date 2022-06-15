@@ -213,20 +213,21 @@ class EB_GROMACS(CMakeMake):
 
         # check whether CK2K is loaded as a dependency
         cp2k_root = get_software_root('CP2K')
-        if  str(self.cfg['with_cp2k']).upper() == 'TRUE' :
+        if str(self.cfg['with_cp2k']).upper() == 'AUTO':
+            if cp2k_root:
+                self.log.info('CP2K has been auto-detected.')
+        if self.cfg['with_cp2k']:
+            self.log.info("Building with CP2K was requested.")
             if not cp2k_root:
                 msg = "Compilation with CP2K was expicitly selected, but CP2K was not found."
                 raise EasyBuildError(msg)
-            self.log.info("Building with CP2K was requested.")
-        elif str(self.cfg['with_cp2k']).upper() == 'FALSE' :
+        else:
             if cp2k_root:
                 self.log.info('CP2K was found, but compilation without CP2K has been requested.')
             cp2k_root = None
-        elif str(self.cfg['with_cp2k']).upper() == 'AUTO' and cp2k_root:
-            self.log.info('CP2K has been auto-detected.')
 
         if LooseVersion(self.version) < LooseVersion('2022') and cp2k_root:
-            msg ='CP2K support is only available for GROMACS 2022 and newer.'
+            msg = 'CP2K support is only available for GROMACS 2022 and newer.'
             raise EasyBuildError(msg)
         elif cp2k_root and LooseVersion(get_software_version('CP2K')) < LooseVersion('8.1'):
             msg = 'CP2K support in GROMACS requires CP2K version 8.1 or higher.'
