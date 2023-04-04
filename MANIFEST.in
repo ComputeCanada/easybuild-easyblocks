@@ -1,6 +1,0 @@
-recursive-include easybuild *.py
-include CONTRIBUTING.md
-include LICENSE
-include README.rst
-include RELEASE_NOTES
-include setup.py
