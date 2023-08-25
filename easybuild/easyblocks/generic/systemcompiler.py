@@ -143,16 +143,16 @@ class SystemCompiler(Bundle, EB_GCC, EB_ifort):
                 raise EasyBuildError("I don't know how to do the prepare_step for %s", self.cfg['name'])
         else:
             Bundle.prepare_step(self, *args, **kwargs)
-            
-        # Determine compiler path (real path, without resolved symlinks)
+
+        # Determine compiler path (real path, with resolved symlinks)
         compiler_name = self.cfg['name'].lower()
         if compiler_name == 'gcccore':
             compiler_name = 'gcc'
         if self.cfg['version'] != 'system' and compiler_name == 'gcc':
-            compiler_name += '-%s' % self.cfg['version']
+            compiler_name += '-%s' % self.cfg['version'].split('.')[0]
         path_to_compiler = which(compiler_name)
         if path_to_compiler:
-            #path_to_compiler = resolve_path(path_to_compiler) 
+            path_to_compiler = resolve_path(path_to_compiler)
             self.log.info("Found path to compiler '%s' (with symlinks resolved): %s", compiler_name, path_to_compiler)
         else:
             raise EasyBuildError("%s not found in $PATH", compiler_name)
@@ -199,7 +199,7 @@ class SystemCompiler(Bundle, EB_GCC, EB_ifort):
         if self.cfg['version'] == 'system':
             self.log.info("Found specified version '%s', going with derived compiler version '%s'",
                           self.cfg['version'], self.compiler_version)
-        elif self.cfg['version'] != self.compiler_version:
+        elif not self.compiler_version.startswith(self.cfg['version']):
             raise EasyBuildError("Specified version (%s) does not match version reported by compiler (%s)" %
                                  (self.cfg['version'], self.compiler_version))
 
