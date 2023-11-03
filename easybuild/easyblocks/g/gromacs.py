@@ -112,7 +112,8 @@ class EB_GROMACS(CMakeMake):
         # http://manual.gromacs.org/documentation/2018/install-guide/index.html#simd-support
         if 'MIC-AVX512' in optarch and LooseVersion(self.version) >= LooseVersion('2016'):
             res = 'AVX_512_KNL'
-        elif 'AVX512' in optarch and LooseVersion(self.version) >= LooseVersion('2016'):
+        elif (('AVX512' in optarch or 'MARCH=X86-64-V4' in optarch) and
+                LooseVersion(self.version) >= LooseVersion('2016')):
             if (LooseVersion(self.version) >= LooseVersion('2019') and
                     comp_fam == toolchain.GCC and get_software_root('imkl') and
                     re.search(r'GMX_DOUBLE=(1|ON|YES|TRUE)\b', self.cfg['configopts'].upper())):
@@ -122,7 +123,7 @@ class EB_GROMACS(CMakeMake):
                 self.log.info("Falling back to AVX2_256 for GROMACS >= 2019 with GMX_DOUBLE=ON.")
             else:
                 res = 'AVX_512'
-        elif 'AVX2' in optarch and LooseVersion(self.version) >= LooseVersion('5.0'):
+        elif ('AVX2' in optarch or 'MARCH=X86-64-V3' in optarch) and LooseVersion(self.version) >= LooseVersion('5.0'):
             res = 'AVX2_256'
         elif 'AVX' in optarch:
             res = 'AVX_256'
