@@ -168,9 +168,12 @@ class EB_NAMD(MakeCp):
             raise EasyBuildError("CUDA is not a dependency, but support for CUDA is enabled.")
 
         tcl = get_software_root('Tcl')
-        if tcl:
+        if not tcl and build_option('sysroot'):
+            tcl = os.path.join(build_option('sysroot'), 'usr')
+        out, ec = run_cmd("echo 'puts $tcl_version;exit 0' | tclsh", simple=False)
+        if tcl and ec == 0:
             self.cfg.update('namd_cfg_opts', '--with-tcl --tcl-prefix %s' % tcl)
-            tclversion = '.'.join(get_software_version('Tcl').split('.')[0:2])
+            tclversion = out.strip()
             tclv_subs = [(r'-ltcl[\d.]*\s', '-ltcl%s ' % tclversion)]
 
             apply_regex_substitutions(os.path.join('arch', '%s.tcl' % self.cfg['namd_basearch']), tclv_subs)
