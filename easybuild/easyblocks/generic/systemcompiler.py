@@ -274,6 +274,8 @@ class SystemCompiler(Bundle, EB_GCC, EB_ifort):
             else:
                 raise EasyBuildError("I don't know how to generate extra module text for %s", self.cfg['name'])
         else:
+            if self.cfg['name'] in ['GCC', 'GCCcore']:
+                self.requires_runtime_license = False
             extras = super(SystemCompiler, self).make_module_extra(*args, **kwargs)
         return extras
 
