@@ -27,7 +27,6 @@
 @author: Pavel Grochal (INUITS)
 @author: Kenneth Hoste (Ghent University)
 @author: Alan O'Cais (Juelich Supercomputing Centre)
-@author: Ali Kerrache (University of Manitoba, WestGrid/Compute Canada)
 @author: Arkadiy Davydov (University of Warwick)
 """
 
@@ -35,7 +34,7 @@ import glob
 import os
 import re
 import tempfile
-from distutils.version import LooseVersion
+from easybuild.tools import LooseVersion
 
 import easybuild.tools.environment as env
 import easybuild.tools.toolchain as toolchain
@@ -87,6 +86,7 @@ KOKKOS_CPU_ARCH_LIST = [
     'TURING75',  # NVIDIA Turing generation CC 7.5 GPU
     'AMPERE80',  # NVIDIA Ampere generation CC 8.0 GPU
     'AMPERE86',  # NVIDIA Ampere generation CC 8.6 GPU
+    'HOPPER90',  # NVIDIA Hopper generation CC 9.0 GPU
     'VEGA900',  # AMD GPU MI25 GFX900
     'VEGA906',  # AMD GPU MI50/MI60 GFX906
     'VEGA908',  # AMD GPU MI100 GFX908
@@ -136,9 +136,8 @@ KOKKOS_GPU_ARCH_TABLE = {
     '7.5': 'TURING75',  # NVIDIA Turing generation CC 7.5
     '8.0': 'AMPERE80',  # NVIDIA Ampere generation CC 8.0
     '8.6': 'AMPERE86',  # NVIDIA Ampere generation CC 8.6
+    '9.0': 'HOPPER90',  # NVIDIA Hopper generation CC 9.0
 }
-
-PKG_PREFIX = 'PKG_'
 
 # lammps version, which caused the most changes. This may not be precise, but it does work with existing easyconfigs
 ref_version = '29Sep2021'
@@ -165,7 +164,6 @@ def translate_lammps_version(version):
     }
     return '.'.join([items[2], month_map[items[1].upper()], '%02d' % int(items[0])])
 
-PKG_USER_PREFIX = PKG_PREFIX + 'USER-'
 
 class EB_LAMMPS(CMakeMake):
     """
