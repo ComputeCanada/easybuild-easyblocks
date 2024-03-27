@@ -248,6 +248,7 @@ class EB_LAMMPS(CMakeMake):
     def configure_step(self, **kwargs):
         """Custom configuration procedure for LAMMPS."""
 
+        configopts_easyconfig = self.cfg['configopts']
         if not get_software_root('VTK'):
             if self.cfg['user_packages']:
                 self.cfg['user_packages'] = [x for x in self.cfg['user_packages'] if x != 'VTK']
@@ -451,7 +452,10 @@ class EB_LAMMPS(CMakeMake):
         else:
             raise EasyBuildError("Expected to find a Python dependency as sanity check commands rely on it!")
 
-        return super(EB_LAMMPS, self).configure_step()
+        res = super(EB_LAMMPS, self).configure_step()
+        # restore for next iteration
+        self.cfg['configopts'] = configopts_easyconfig
+        return res
 
     def install_step(self):
         """Install LAMMPS and examples/potentials."""
