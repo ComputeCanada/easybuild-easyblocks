@@ -84,7 +84,7 @@ class EB_MCR(PackedBinary):
         else:
             config = '\n'.join([
                 "destinationFolder=%s" % self.installdir,
-                "agreeToLicense=Yes",
+                "agreeToLicense=yes",
                 "mode=silent",
             ])
 
