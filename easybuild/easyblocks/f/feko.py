@@ -27,14 +27,8 @@ EasyBuild support for building and installing FEKO, implemented as an easyblock
 
 @author: Kenneth Hoste (Ghent University)
 """
-import glob
-import os
-import shutil
 from easybuild.easyblocks.generic.binary import Binary
-from easybuild.easyblocks.generic.rpm import rebuild_rpm
-from easybuild.tools.build_log import EasyBuildError
-from easybuild.tools.filetools import rmtree2
-from easybuild.tools.run import run_cmd, run_cmd_qa
+from easybuild.tools.run import run_cmd
 
 
 class EB_FEKO(Binary):
