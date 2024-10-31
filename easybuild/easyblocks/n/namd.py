@@ -101,7 +101,14 @@ class EB_NAMD(MakeCp):
 
         self.charm_dir = self.charm_subdir
 
-        charm_config = os.path.join(self.charm_dir, 'src', 'scripts', 'configure')
+        # NAMD-3.0 depends on charm-8.0.0 that uses Automake. The 'configure' file was
+        # removed in favour of 'configure.ac'
+        configure_file_name = 'configure'
+        if LooseVersion(self.version) >= LooseVersion('3.0'):
+            configure_file_name = 'configure.ac'
+
+        charm_config = os.path.join(self.charm_dir, 'src', 'scripts', configure_file_name)
+        
         apply_regex_substitutions(charm_config, [(r'SHELL=/bin/csh', 'SHELL=$(which csh)')])
 
         for csh_script in [os.path.join('plugins', 'import_tree'), os.path.join('psfgen', 'import_tree'),
