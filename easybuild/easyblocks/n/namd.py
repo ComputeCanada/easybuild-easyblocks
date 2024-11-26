@@ -108,7 +108,7 @@ class EB_NAMD(MakeCp):
             configure_file_name = 'configure.ac'
 
         charm_config = os.path.join(self.charm_dir, 'src', 'scripts', configure_file_name)
-        
+
         apply_regex_substitutions(charm_config, [(r'SHELL=/bin/csh', 'SHELL=$(which csh)')])
 
         for csh_script in [os.path.join('plugins', 'import_tree'), os.path.join('psfgen', 'import_tree'),
@@ -163,7 +163,12 @@ class EB_NAMD(MakeCp):
         cxxflags = os.environ['CXXFLAGS']
         if LooseVersion(self.version) >= LooseVersion('2.12'):
             cxxflags += ' --std=c++11'
-        self.cfg.update('namd_cfg_opts', '--cxx "%s" --cxx-opts "%s" --cxx-noalias-opts "%s -fno-alias"' % (os.environ['CXX'], cxxflags, cxxflags))
+
+        if comp_fam == "Intel" :
+            self.cfg.update('namd_cfg_opts', '--cxx "%s" --cxx-opts "%s" --cxx-noalias-opts "%s -fno-alias"' % (os.environ['CXX'], cxxflags, cxxflags))
+        else:
+            self.cfg.update('namd_cfg_opts', '--cxx "%s" --cxx-opts "%s"' % (os.environ['CXX'], cxxflags))
+
 
         # NAMD dependencies: CUDA, TCL, FFTW
         cuda = get_software_root('CUDA')
