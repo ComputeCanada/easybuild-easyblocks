@@ -215,11 +215,18 @@ class EB_GROMACS(CMakeMake):
                         "cuda_cc_semicolon_sep").replace('.', '')
                     self.cfg.update('configopts', '-DGMX_CUDA_TARGET_SM="%s"' % cuda_cc_semicolon_sep)
 
-                # Enable HeFFTe support for multi-GPU FFT support if it's listed as a dependency
+                # Enable cuFFTMp or HeFFTe support for multi-GPU FFT support (added in v2023)
+                # if one of them (not both) is listed as a dependency
                 heffte_root = get_software_root('HeFFTe')
-                if heffte_root:
+                cufftmp_root = get_software_root('cuFFTMp')
+                if heffte_root and cufftmp_root:
+                    raise EasyBuildError("HeFFTe and cuFFTMp are both listed as dependency, but cannot be combined.")
+                if gromacs_version >= '2023' and heffte_root:
                     self.cfg.update('configopts', '-DGMX_USE_HEFFTE=ON')
                     self.cfg.update('configopts', '-DHeffte_ROOT=%s' % heffte_root)
+                if gromacs_version >= '2023' and cufftmp_root:
+                    self.cfg.update('configopts', '-DGMX_USE_CUFFTMP=ON')
+                    self.cfg.update('configopts', '-DcuFFTMp_ROOT=%s' % cufftmp_root)
             else:
                 # explicitly disable GPU support if CUDA is not available,
                 # to avoid that GROMACS finds and uses a system-wide CUDA compiler
