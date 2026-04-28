@@ -228,7 +228,7 @@ class EB_GROMACS(CMakeMake):
                     self.cfg.update('configopts', '-DGMX_USE_CUFFTMP=ON')
                     self.cfg.update('configopts', '-DcuFFTMp_ROOT=%s' % cufftmp_root)
                     # Prevent that we pick up the cufft.h from CUDA itself instead of the one provided by cuFFTMp
-                    # by making a symlink to the latter in the GROMACS source dir (which is first in the searh path)
+                    # by making a symlink to the latter in the GROMACS source dir (which is first in the search path)
                     cufft_header = os.path.join(cufftmp_root, 'include', 'cufft.h')
                     symlink(cufft_header, os.path.join(self.cfg['start_dir'], 'src', 'include', 'cufft.h'))
             else:
