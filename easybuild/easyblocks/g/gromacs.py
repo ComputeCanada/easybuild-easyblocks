@@ -47,7 +47,7 @@ from easybuild.framework.easyconfig import CUSTOM
 from easybuild.tools import LooseVersion
 from easybuild.tools.build_log import EasyBuildError, print_warning
 from easybuild.tools.config import build_option
-from easybuild.tools.filetools import copy_dir, find_backup_name_candidate, remove_dir, which
+from easybuild.tools.filetools import copy_dir, find_backup_name_candidate, remove_dir, symlink, which
 from easybuild.tools.modules import get_software_libdir, get_software_root, get_software_version
 from easybuild.tools.run import run_shell_cmd
 from easybuild.tools.systemtools import X86_64, get_cpu_architecture, get_cpu_features, get_shared_lib_ext
@@ -227,6 +227,10 @@ class EB_GROMACS(CMakeMake):
                 if gromacs_version >= '2023' and cufftmp_root:
                     self.cfg.update('configopts', '-DGMX_USE_CUFFTMP=ON')
                     self.cfg.update('configopts', '-DcuFFTMp_ROOT=%s' % cufftmp_root)
+                    # Prevent that we pick up the cufft.h from CUDA itself instead of the one provided by cuFFTMp
+                    # by making a symlink to the latter in the GROMACS source dir (which is first in the searh path)
+                    cufft_header = os.path.join(cufftmp_root, 'include', 'cufft.h')
+                    symlink(cufft_header, os.path.join(self.cfg['start_dir'], 'src', 'include', 'cufft.h'))
             else:
                 # explicitly disable GPU support if CUDA is not available,
                 # to avoid that GROMACS finds and uses a system-wide CUDA compiler
