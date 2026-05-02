@@ -43,8 +43,10 @@ from sysconfig import get_config_vars
 
 import easybuild.tools.environment as env
 from easybuild.base import fancylogger
-from easybuild.easyblocks.python import EXTS_FILTER_DUMMY_PACKAGES, EXTS_FILTER_PYTHON_PACKAGES, set_py_env_vars
-from easybuild.easyblocks.python import det_installed_python_packages, det_pip_version, run_pip_check, run_pip_list
+from easybuild.easyblocks.python import det_installed_python_packages, det_pip_version, EXTS_FILTER_DUMMY_PACKAGES
+from easybuild.easyblocks.python import EXTS_FILTER_PYTHON_PACKAGES, partial_normalize_pip, run_pip_check, run_pip_list
+from easybuild.easyblocks.python import set_py_env_vars
+
 from easybuild.framework.easyconfig import CUSTOM
 from easybuild.framework.easyconfig.default import DEFAULT_CONFIG
 from easybuild.framework.easyconfig.templates import PYPI_SOURCE
@@ -526,6 +528,7 @@ class PythonPackage(ExtensionEasyBlock):
                                   CUSTOM],
             'dummy_package': [None, "Install a dummy package empty in contents but visible by Python package managers "
                                     "such as pip", CUSTOM],
+            'exts_formatter': [partial_normalize_pip, "Function to format extension names in module file", CUSTOM],
             'fix_python_shebang_for': [['bin/*'], "List of files for which Python shebang should be fixed "
                                                   "to '#!/usr/bin/env python' (glob patterns supported) "
                                                   "(default: ['bin/*'])", CUSTOM],
@@ -1334,21 +1337,22 @@ class PythonPackage(ExtensionEasyBlock):
         # inject extra '%(python)s' template value for use by sanity check commands
         self.cfg.template_values['python'] = python_cmd
 
-        params = {
+        toplevel_params = {
             'sanity_pip_check': self.cfg.get('sanity_pip_check', True),
             'sanity_check_pip_list': self.cfg.get('sanity_check_pip_list'),
+            'exts_formatter': self.cfg.get('exts_formatter'),
         }
 
         if self.is_extension:
-            for key in params:
+            for key in toplevel_params:
                 if self.master.cfg.get(key) is not None:
                     # If the main easyblock (e.g. PythonBundle) defines the variable
                     # we trust it does the 'pip check' or 'pip list' if requested and checks for mismatches
-                    params[key] = False
+                    toplevel_params[key] = False
                     self.log.info(f"'{key}' disabled for {self.name} extension, "
                                   f"assuming that parent will take care of it")
 
-        if params['sanity_pip_check']:
+        if toplevel_params['sanity_pip_check']:
             if not self.is_extension:
                 # for stand-alone Python package installations (not part of a bundle of extensions),
                 # the (fake or real) module file must be loaded at this point,
@@ -1364,7 +1368,7 @@ class PythonPackage(ExtensionEasyBlock):
             unversioned_packages = self.cfg.get('unversioned_packages', [])
             pkgs = [(self.name, self.version)]
             run_pip_list(pkgs, python_cmd=python_cmd, unversioned_packages=unversioned_packages,
-                         strict_check=params['sanity_check_pip_list'])
+                         check_names_versions=toplevel_params['sanity_check_pip_list'])
 
         # ExtensionEasyBlock handles loading modules correctly for multi_deps, so we clean up fake_mod_data
         # and let ExtensionEasyBlock do its job
