@@ -680,7 +680,7 @@ class PythonPackage(ExtensionEasyBlock):
         res = run_shell_cmd("ulimit -s -H", hidden=True)
         max_ulimit_s = res.output.strip()
 
-        if int(self.cfg['ulimit']) < int(max_ulimit_s):
+        if max_ulimit_s != UNLIMITED and int(self.cfg['ulimit']) < int(max_ulimit_s):
             msg = "Current stack size limit is %s, and can not be set to %s due to hard limit of %s;"
             msg += " setting stack size limit to %s instead, "
             msg += " this may break part of the compilation (e.g. hashlib)..."
