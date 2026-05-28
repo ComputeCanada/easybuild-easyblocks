@@ -62,9 +62,9 @@ from easybuild.tools.utilities import nub
 from easybuild.tools.hooks import CONFIGURE_STEP, BUILD_STEP, TEST_STEP, INSTALL_STEP
 
 
-# Default ulimit for stack size, enorced when ulimit is set to unlimited on the system.
+# Default ulimit for stack size, enforced when ulimit is set to unlimited on the system.
 # This is especially important with Python 3.14 and newer, where an unlimited stack size
-# can yield an infinite recursion in recoursion tests, eventually filling up all available
+# can yield an infinite recursion in recursion tests, eventually filling up all available
 # memory. See: https://github.com/python/cpython/issues/143460
 ULIMIT_DEFAULT = 8192
 
