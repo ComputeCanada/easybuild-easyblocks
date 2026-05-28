@@ -32,6 +32,7 @@ EasyBuild support for Python packages, implemented as an easyblock
 @author: Jens Timmerman (Ghent University)
 @author: Alexander Grund (TU Dresden)
 @author: Samuel Moors (Vrije Universiteit Brussel)
+@author: Jan Andre Reuter (Forschungszentrum Jülich)
 """
 import json
 import os
@@ -43,15 +44,15 @@ from sysconfig import get_config_vars
 
 import easybuild.tools.environment as env
 from easybuild.base import fancylogger
-from easybuild.easyblocks.python import det_installed_python_packages, det_pip_version, EXTS_FILTER_DUMMY_PACKAGES
-from easybuild.easyblocks.python import EXTS_FILTER_PYTHON_PACKAGES, partial_normalize_pip, run_pip_check, run_pip_list
-from easybuild.easyblocks.python import set_py_env_vars
-
+from easybuild.easyblocks.python import EXTS_FILTER_DUMMY_PACKAGES, EXTS_FILTER_PYTHON_PACKAGES, set_py_env_vars
+from easybuild.easyblocks.python import det_installed_python_packages, det_pip_version, run_pip_check, run_pip_list
+from easybuild.easyblocks.python import UNLIMITED
+from easybuild.easyblocks.python import partial_normalize_pip
 from easybuild.framework.easyconfig import CUSTOM
 from easybuild.framework.easyconfig.default import DEFAULT_CONFIG
 from easybuild.framework.easyconfig.templates import PYPI_SOURCE
 from easybuild.framework.extensioneasyblock import ExtensionEasyBlock
-from easybuild.tools.build_log import EasyBuildError, print_msg
+from easybuild.tools.build_log import EasyBuildError, print_msg, print_warning
 from easybuild.tools.config import build_option, PYTHONPATH, EBPYTHONPREFIXES
 from easybuild.tools.filetools import change_dir, mkdir, read_file, remove_dir, symlink, which, write_file, search_file
 from easybuild.tools.modules import ModEnvVarType, get_software_root, get_software_version
@@ -60,6 +61,12 @@ from easybuild.tools.run import run_shell_cmd
 from easybuild.tools.utilities import nub
 from easybuild.tools.hooks import CONFIGURE_STEP, BUILD_STEP, TEST_STEP, INSTALL_STEP
 
+
+# Default ulimit for stack size, enorced when ulimit is set to unlimited on the system.
+# This is especially important with Python 3.14 and newer, where an unlimited stack size
+# can yield an infinite recursion in recoursion tests, eventually filling up all available
+# memory. See: https://github.com/python/cpython/issues/143460
+ULIMIT_DEFAULT = 8192
 
 # not 'easy_install' deliberately, to avoid that pkg installations listed in easy-install.pth get preference
 # '.' is required at the end when using easy_install/pip in unpacked source dir
@@ -552,6 +559,8 @@ class PythonPackage(ExtensionEasyBlock):
                                             "set. The check only runs if 'sanity_pip_check' is True.", CUSTOM],
             'runtest': [True, "Run unit tests.", CUSTOM],  # overrides default
             'testinstall': [False, "Install into temporary directory prior to running the tests.", CUSTOM],
+            'ulimit': [None, f"Set ulimit -s to specified value. Default: Limit to {ULIMIT_DEFAULT} if unlimited.",
+                       CUSTOM],
             'unpack_sources': [None, "Unpack sources prior to build/install. Defaults to 'True' except for whl files",
                                CUSTOM],
             # A version of 0.0.0 is usually an error on installation unless the package does really not provide a
@@ -633,6 +642,7 @@ class PythonPackage(ExtensionEasyBlock):
         self.multi_python = 'Python' in self.cfg['multi_deps']
 
         self.determine_install_command()
+        self.set_ulimit()
 
         set_py_env_vars(self.log)
 
@@ -647,6 +657,39 @@ class PythonPackage(ExtensionEasyBlock):
                 self.log.debug(f'Ignoring error when setting type of (LD_)LIBRARY_PATH module variables: {e}')
             else:
                 raise
+
+    def set_ulimit(self):
+        """
+        Sets the ulimit stack size based on the ulimit config option.
+        Stack size is never set to any value above the hard limit specified by the system.
+        If the user has not set any stack size and the system specifies unlimited, set the
+        value to the default of ULIMIT_DEFAULT.
+        If the system specified anything else than unlimited, we only update the stack size
+        if it was set by the user.
+        """
+        # determine current stack size limit
+        res = run_shell_cmd("ulimit -s", hidden=True)
+        curr_ulimit_s = res.output.strip()
+        if not self.cfg['ulimit']:
+            if curr_ulimit_s != UNLIMITED:
+                return
+            self.cfg['ulimit'] = ULIMIT_DEFAULT
+
+        # figure out hard limit for stack size limit;
+        # this determines whether or not we can use "ulimit -s unlimited"
+        res = run_shell_cmd("ulimit -s -H", hidden=True)
+        max_ulimit_s = res.output.strip()
+
+        if int(self.cfg['ulimit']) < int(max_ulimit_s):
+            msg = "Current stack size limit is %s, and can not be set to %s due to hard limit of %s;"
+            msg += " setting stack size limit to %s instead, "
+            msg += " this may break part of the compilation (e.g. hashlib)..."
+            print_warning(msg % (curr_ulimit_s, UNLIMITED, max_ulimit_s, max_ulimit_s))
+            self.cfg['ulimit'] = max_ulimit_s
+
+        self.log.info(f"Current stack size limit is {curr_ulimit_s}, limiting stack size to {ULIMIT_DEFAULT}")
+        for opt in 'prebuildopts', 'pretestopts', 'preconfigopts':
+            self.cfg.update(opt, "ulimit -s %s && " % self.cfg['ulimit'])
 
     def determine_install_command(self):
         """
