@@ -676,15 +676,15 @@ class PythonPackage(ExtensionEasyBlock):
             self.cfg['ulimit'] = ULIMIT_DEFAULT
 
         # figure out hard limit for stack size limit;
-        # this determines whether or not we can use "ulimit -s unlimited"
+        # this determines whether or not we can use "ulimit -s self.cfg['ulimit']"
         res = run_shell_cmd("ulimit -s -H", hidden=True)
         max_ulimit_s = res.output.strip()
 
         if max_ulimit_s != UNLIMITED and int(self.cfg['ulimit']) < int(max_ulimit_s):
             msg = "Current stack size limit is %s, and can not be set to %s due to hard limit of %s;"
             msg += " setting stack size limit to %s instead, "
-            msg += " this may break part of the compilation (e.g. hashlib)..."
-            print_warning(msg % (curr_ulimit_s, UNLIMITED, max_ulimit_s, max_ulimit_s))
+            msg += " this may break part of the compilation..."
+            print_warning(msg % (curr_ulimit_s, self.cfg['ulimit'], max_ulimit_s, max_ulimit_s))
             self.cfg['ulimit'] = max_ulimit_s
 
         self.log.info(f"Current stack size limit is {curr_ulimit_s}, limiting stack size to {ULIMIT_DEFAULT}")
