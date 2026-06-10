@@ -680,6 +680,9 @@ class EB_GROMACS(CMakeMake):
     def sanity_check_step(self):
         """Custom sanity check for GROMACS."""
 
+        # Load module to prepare environment for sanity check.
+        mod_data = super().sanity_check_load_module()
+
         dirs = [os.path.join('include', 'gromacs')]
 
         # in GROMACS v5.1, only 'gmx' binary is there
@@ -763,6 +766,9 @@ class EB_GROMACS(CMakeMake):
             'dirs': dirs,
         }
         super().sanity_check_step(custom_paths=custom_paths)
+
+        if mod_data:
+            self.clean_up_fake_module(mod_data)
 
     def run_all_steps(self, *args, **kwargs):
         """
