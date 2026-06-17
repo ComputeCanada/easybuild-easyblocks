@@ -642,7 +642,6 @@ class PythonPackage(ExtensionEasyBlock):
         self.multi_python = 'Python' in self.cfg['multi_deps']
 
         self.determine_install_command()
-        self.set_ulimit()
 
         set_py_env_vars(self.log)
 
@@ -687,7 +686,7 @@ class PythonPackage(ExtensionEasyBlock):
             print_warning(msg % (curr_ulimit_s, self.cfg['ulimit'], max_ulimit_s, max_ulimit_s))
             self.cfg['ulimit'] = max_ulimit_s
 
-        self.log.info(f"Current stack size limit is {curr_ulimit_s}, limiting stack size to {ULIMIT_DEFAULT}")
+        self.log.info(f"Current stack size limit is {curr_ulimit_s}, limiting stack size to {self.cfg['ulimit']}")
         for opt in 'prebuildopts', 'pretestopts', 'preconfigopts':
             self.cfg.update(opt, "ulimit -s %s && " % self.cfg['ulimit'])
 
@@ -753,6 +752,8 @@ class PythonPackage(ExtensionEasyBlock):
         if self.python_cmd:
             # set Python lib directories
             self.set_pylibdirs()
+
+        self.set_ulimit()
 
     def _should_unpack_source(self):
         """Determine whether we need to unpack the source(s)"""
