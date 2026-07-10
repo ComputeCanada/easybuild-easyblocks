@@ -241,7 +241,7 @@ class EB_GROMACS(CMakeMake):
         # plumed = 'native' will enable GROMACS' native PLUMED support ('-DGMX_USE_PLUMED=ON')
         # for GROMACS 2025 and newer. plumed = 'patch' specifically requests PLUMED patches.
         # In auto-detect ('plumed = None' or not defined) will prefer native support for 2026
-        # and newer. Older versions of GROMACS patches are applied to enable PLUMED support.
+        # and newer. For older versions of GROMACS, patches are applied to enable PLUMED support.
         # plumed = True behaves like plumed = 'patch' for backwards compatibility.
         plumed_root = get_software_root('PLUMED')
         plumed_patches = False
