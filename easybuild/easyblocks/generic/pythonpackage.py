@@ -699,7 +699,7 @@ class PythonPackage(ExtensionEasyBlock):
             self.use_setup_py = False
             self.install_cmd = PIP_INSTALL_CMD
 
-            pip_verbose = self.cfg.get('pip_verbose', None)
+            pip_verbose = self.cfg.get('pip_verbose')
             if pip_verbose or (pip_verbose is None and build_option('debug')):
                 self.py_installopts.append('--verbose')
 
@@ -718,7 +718,7 @@ class PythonPackage(ExtensionEasyBlock):
             if self.cfg.get('zipped_egg', False):
                 self.py_installopts.append('--egg')
 
-            pip_no_index = self.cfg.get('pip_no_index', None)
+            pip_no_index = self.cfg.get('pip_no_index')
             if pip_no_index or (pip_no_index is None and self.cfg.get('download_dep_fail', True)):
                 self.py_installopts.append('--no-index')
 
@@ -1316,9 +1316,9 @@ class PythonPackage(ExtensionEasyBlock):
         # since custom actions taken below require that environment is set up properly already
         # (especially when using --sanity-check-only)
         if not self.sanity_check_module_loaded:
-            extension = self.is_extension or kwargs.get('extension', False)
-            extra_modules = kwargs.get('extra_modules', None)
-            self.sanity_check_load_module(extension=extension, extra_modules=extra_modules)
+            self.sanity_check_load_module(
+                extension=kwargs.get('extension'),  # Deprecated for 6.0, let it show warning if passed
+                extra_modules=kwargs.get('extra_modules'))
 
         # Must be called here since load_module is not called for every extension,
         # see also https://github.com/easybuilders/easybuild-easyblocks/issues/1877
