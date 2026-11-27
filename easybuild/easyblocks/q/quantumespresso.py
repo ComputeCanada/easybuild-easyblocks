@@ -206,12 +206,17 @@ class EB_QuantumESPRESSO(EasyBlock):
 
         def _add_cuda(self):
             """Enable CUDA for Quantum ESPRESSO."""
-            if self.cfg.get('with_cuda', False):
-                self.cfg.update('configopts', '-DQE_ENABLE_CUDA=ON')
-                self.cfg.update('configopts', '-DQE_ENABLE_OPENACC=ON')
+            if LooseVersion(self.version) >= LooseVersion('7.6'):
+                # Note: don't supply -DQE_GPU if no GPU is needed
+                if self.cfg.get('with_cuda', False):
+                    self.cfg.update('configopts', '-DQE_GPU=cuda')
             else:
-                self.cfg.update('configopts', '-DQE_ENABLE_CUDA=OFF')
-                self.cfg.update('configopts', '-DQE_ENABLE_OPENACC=OFF')
+                if self.cfg.get('with_cuda', False):
+                    self.cfg.update('configopts', '-DQE_ENABLE_CUDA=ON')
+                    self.cfg.update('configopts', '-DQE_ENABLE_OPENACC=ON')
+                else:
+                    self.cfg.update('configopts', '-DQE_ENABLE_CUDA=OFF')
+                    self.cfg.update('configopts', '-DQE_ENABLE_OPENACC=OFF')
 
         def _add_scalapack(self):
             """Enable ScaLAPACK for Quantum ESPRESSO."""
